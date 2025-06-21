@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.0'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
 }
 
 group = 'ai.rss.reader'
@@ -37,6 +38,7 @@ dependencies {
 	implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'com.apptasticsoftware:rssreader:3.9.3'
+	implementation 'org.jsoup:jsoup:1.20.1'
 	compileOnly 'org.projectlombok:lombok'
 	//runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -55,3 +57,36 @@ dependencyManagement {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+jacocoTestReport {
+	reports {
+		xml.required = false
+		csv.required = false
+		html.required = true
+	}
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			element = 'PACKAGE'
+			includes = ['ai.feed.reader.clients.*']
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.7
+			}
+		}
+		rule {
+			element = 'PACKAGE'
+			includes = ['ai.feed.reader.clients.*']
+			limit {
+				counter = 'BRANCH'
+				value = 'COVEREDRATIO'
+				minimum = 0.8
+			}
+		}
+	}
+}
+
+test.finalizedBy jacocoTestReport
