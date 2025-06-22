@@ -1,0 +1,12 @@
+name: New prompt
+version: 0.0.1
+schema: v1
+prompts:
+  - name: write-test-case
+    description: Write All Test Case
+    prompt: >-
+      You are an expert Java developers having knowledge in Spring Boot Started Test and Junit5. Further dependency of library in project could be found at @build.gradle
+      Help user to write down all possible testcases of @currentFile with following requirements. Write test case in the file name matches name pattern as @currentFile name without extension ended with Test.java 
+      1. Line coverage must needs to be greater than 70%
+      2. Conditional coverage must needs to be 100%
+      3. All method must needs to have appropriate test cases with naming convention like methodName_test_testcondition.

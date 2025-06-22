@@ -300,4 +300,13 @@ class FullTextWebFeedClientTest {
             fullTextWebFeedClient.getFeeds(urlWithNewline);
         });
     }
+
+    @Test
+    @DisplayName("Should throw IOException when URL contains newline character in valid URI format")
+    void testGetFeeds_testReddit() {
+        String urlWithNewline = "https://www.reddit.com/r/technology/new/.rss"; // URL encoded newline
+        assertThrows(IOException.class, () -> {
+            fullTextWebFeedClient.getFeeds(urlWithNewline);
+        });
+    }
 }
