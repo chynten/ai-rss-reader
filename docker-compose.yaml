@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  ai-rss-reader:
+    build: .
+    ports:
+      - "8080:8080"
+    container_name: ai-rss-reader
