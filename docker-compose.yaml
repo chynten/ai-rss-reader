@@ -1,7 +1,38 @@
 version: '3.8'
+
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ai-rss-reader-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ai-rss-reader-network
+
   ai-rss-reader:
     build: .
+    container_name: ai-rss-reader-app
     ports:
       - "8080:8080"
-    container_name: ai-rss-reader
+    depends_on:
+      - rabbitmq
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    networks:
+      - ai-rss-reader-network
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  ai-rss-reader-network:
+    driver: bridge

@@ -3,6 +3,7 @@ package ai.feed.reader.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +32,8 @@ import org.mockito.quality.Strictness;
 import com.apptasticsoftware.rssreader.Item;
 import com.apptasticsoftware.rssreader.RssReader;
 
+import ai.feed.reader.to.WebFeed;
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebFeedServiceTest {
@@ -39,6 +43,8 @@ class WebFeedServiceTest {
     WebPageService webPageService;
     @Mock
     RssReader rssReader;
+    @Mock
+    AsyncMessageService asyncMessageService;
     WebFeedService webFeedService;
 
     @BeforeEach
@@ -46,6 +52,7 @@ class WebFeedServiceTest {
         webFeedService = new WebFeedService();
         webFeedService.openAIService = openAIService;
         webFeedService.webPageService = webPageService;
+        webFeedService.asyncMessageService = asyncMessageService;
     }
 
     @Test
@@ -79,7 +86,7 @@ class WebFeedServiceTest {
     }
 
     @Test
-    void testGetFeeds_success_basic() throws IOException {
+    void testGetFeeds_success_basic() throws IOException, NoSuchAlgorithmException {
         String url = "http://example.com/rss";
         Item item = mock(Item.class);
         when(item.getContent()).thenAnswer(invocation -> Optional.of("content"));
@@ -88,12 +95,12 @@ class WebFeedServiceTest {
         RssReader mockRssReader = mock(RssReader.class);
         when(mockRssReader.read(url)).thenReturn(items.stream());
         webFeedService.rssReader = mockRssReader;
-        List<Item> result = webFeedService.getFeeds(url, false, false);
+        List<WebFeed> result = webFeedService.getFeeds(url, false, false);
         assertEquals(5, result.size());
     }
 
     @Test
-    void testGetFeeds_fullText() throws IOException {
+    void testGetFeeds_fullText() throws IOException, NoSuchAlgorithmException {
         String url = "http://example.com/rss";
         Item item = mock(Item.class);
         when(item.getContent()).thenAnswer(invocation -> Optional.of("<a href=\"http://other.com\">link</a>"));
@@ -121,24 +128,24 @@ class WebFeedServiceTest {
         when(webPageService.getReadableContent(anyString(), anyString())).thenReturn("readable");
         try (MockedStatic<org.jsoup.Jsoup> jsoupMockedStatic = mockStatic(org.jsoup.Jsoup.class)) {
             jsoupMockedStatic.when(() -> org.jsoup.Jsoup.parse(anyString())).thenReturn(mockFeedContent);
-            List<Item> result = webFeedService.getFeeds(url, true, false);
+            List<WebFeed> result = webFeedService.getFeeds(url, true, false);
             assertEquals(1, result.size());
         }
     }
 
     @Test
-    void testGetFeeds_includeAITags() throws IOException {
+    void testGetFeeds_includeAITags() throws IOException, NoSuchAlgorithmException {
         String url = "http://example.com/rss";
         Item item = mock(Item.class);
         when(item.getContent()).thenAnswer(invocation -> Optional.of("content"));
-        when(item.getLink()).thenAnswer(invocation -> Optional.of("http://example.com/article"));
+        when(item.getLink()).thenAnswer(invocation -> Optional.of("https://www.reddit.com/r/technology/new/.rss"));
         List<Item> items = Collections.singletonList(item);
         RssReader mockRssReader = mock(RssReader.class);
         when(mockRssReader.read(url)).thenReturn(items.stream());
         webFeedService.rssReader = mockRssReader;
         when(openAIService.fetchTags(anyString())).thenReturn(Arrays.asList("tag1", "tag2"));
-        List<Item> result = webFeedService.getFeeds(url, false, true);
+        List<WebFeed> result = webFeedService.getFeeds(url, false, true);
         assertEquals(1, result.size());
-        verify(openAIService, atLeastOnce()).fetchTags(anyString());
+        verify(asyncMessageService, atLeastOnce()).sendRssFeedMessage(any(Item.class));
     }
 } 

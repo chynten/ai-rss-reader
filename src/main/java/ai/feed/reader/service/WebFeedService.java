@@ -1,8 +1,12 @@
 package ai.feed.reader.service;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.jsoup.Jsoup;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 import com.apptasticsoftware.rssreader.Item;
 import com.apptasticsoftware.rssreader.RssReader;
 
+import ai.feed.reader.to.WebFeed;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -24,6 +29,9 @@ public class WebFeedService {
 
     @Autowired
     WebPageService webPageService;
+
+    @Autowired
+    AsyncMessageService asyncMessageService;
 
     RssReader rssReader;
 
@@ -46,8 +54,10 @@ public class WebFeedService {
      * @param includeAITags  whether to include AI-generated tags for each article
      * @return a list of processed {@link Item} objects from the feed
      * @throws IOException if the feed URL is invalid or fetching/parsing fails
+     * @throws NoSuchAlgorithmException 
+     * 
      */
-    public List<Item> getFeeds(String feedURL, boolean fullText, boolean includeAITags) throws IOException {
+    public List<WebFeed> getFeeds(String feedURL, boolean fullText, boolean includeAITags) throws IOException, NoSuchAlgorithmException {
         if (feedURL == null) {
             throw new IOException("Feed URL cannot be null");
         }
@@ -67,6 +77,7 @@ public class WebFeedService {
         } catch (URISyntaxException e) {
             throw new IOException("Malformed URL: " + feedURL);
         }
+
         String protocol = uri.getScheme();
         if (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https")) {
             throw new IOException("Invalid protocol. Only HTTP and HTTPS are supported");
@@ -78,10 +89,21 @@ public class WebFeedService {
 
         List<Item> allFeeds = rssReader.read(feedURL).toList();
         List<Item> feeds = allFeeds.subList(0, Math.min(5, allFeeds.size()));
-        log.info("Total Feed Size: " + feeds.size());
 
-        if (fullText) {
-            for (Item feed : feeds) {
+        log.trace("Total Feed Size: " + feeds.size());
+
+        List<WebFeed> webFeeds = new ArrayList<>();
+        for (Item feed : feeds) {
+
+            byte[] hash = MessageDigest.getInstance("MD5").digest(feed.getLink().orElse("").getBytes());
+            String id = new BigInteger(1, hash).toString(16);
+
+            WebFeed webFeed = new WebFeed();
+            webFeed.setItem(feed);
+            webFeed.setId(id);
+            webFeeds.add(webFeed);
+
+            if (fullText) {
                 Document feedContent = Jsoup.parse(feed.getContent().orElse(""));
 
                 for (Element a : feedContent.getElementsByTag("a")) {
@@ -103,12 +125,11 @@ public class WebFeedService {
 
                 feed.setContent(content);
             }
+            if (includeAITags) {
+                asyncMessageService.sendRssFeedMessage(feed);
+            }
         }
-        if (includeAITags) {
-            feeds.stream().forEach(feed -> {
-                List<String> tags = openAIService.fetchTags(feed.getContent().orElse(""));
-            });
-        }
-        return feeds;
+        
+        return webFeeds;
     }
 }

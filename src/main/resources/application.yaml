@@ -1,4 +1,3 @@
-
 spring:
   application:
     name: demo
@@ -8,3 +7,15 @@ spring:
       chat:
         options:
           model: gemma3:4b
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+        prefetch: 1
+        default-requeue-rejected: false

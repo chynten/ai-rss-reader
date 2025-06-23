@@ -4,6 +4,15 @@
       <title>Hello, Thymeleaf</title>
   </head>
   <body>
-      <h1>Welcome, <span th:text="${name}">User</span>!</h1>
+     <table>
+      <tr>
+      <th>Title</th>
+      <th>Content</th>
+    </tr>
+    <tr th:each="webFeed: ${webFeeds}">
+        <td th:text="${webFeed.item.title}" />
+        <td th:utext="${webFeed.item.content.orElse('')}" />
+    </tr>
+  </table>
   </body>
 </html>
