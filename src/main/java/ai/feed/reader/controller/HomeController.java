@@ -21,9 +21,15 @@ public class HomeController {
     @GetMapping("/")
     public String index(Model model) throws IOException, NoSuchAlgorithmException {
         
-        List<WebFeed> webFeeds = webFeedService.getFeeds("https://www.reddit.com/r/technology/new/.rss", true, true);
+        List<WebFeed> webFeeds = webFeedService.getFeeds("https://www.reddit.com/r/technology/new/.rss", false, false);
 
         model.addAttribute("webFeeds", webFeeds);
         return "index";
     }
+
+    @GetMapping("/login")
+    public String login(Model model) {
+        return "login";
+    }
+
 }

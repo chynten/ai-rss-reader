@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.apptasticsoftware.rssreader.Item;
 
-import ai.feed.reader.component.RabbitMQConfig;
+import ai.feed.reader.configuration.RabbitMQConfig;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
